@@ -1,0 +1,2 @@
+apartments;aps
+market stalls;stall,market stand,stands

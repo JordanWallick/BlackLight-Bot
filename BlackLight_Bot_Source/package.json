@@ -1,0 +1,21 @@
+{
+  "name": "blacklight_bot",
+  "version": "0.1.1",
+  "description": "Discord.js bot developed for various helpful tasks involving teaching tools and scouting for Overwatch teams.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jordan Wallick",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "cli-table": "^0.3.1",
+    "discord.js": "^11.5.1",
+    "jsdom": "^16.4.0",
+    "request-promise": "^4.2.6",
+    "requirejs": "^2.3.6",
+    "xmlhttprequest": "^1.8.0"
+  },
+  "type": "module"
+}
