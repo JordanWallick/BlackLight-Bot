@@ -104,7 +104,7 @@ async function overbuffPlayerScout(battle_tag)
 
     let roles = []; // Array of every role this player is ranked in
     let ranks = []; // Array of sr that is directly associated with roles[]
-    let top_ten_heroes = []; // Array of the top ten heroes this player plays (will be sorted to top 3 for each role)
+    let comp_heroes = []; // Array of the top heroes this player plays in competitive (will be sorted to top 3 for each role)
 
     // Get the html of the player's competitive overbuff page
     let html;
@@ -181,14 +181,14 @@ async function overbuffPlayerScout(battle_tag)
     let hero_table = cheerio.load(page_html('div[class=table-with-filter-tabs]').html()); // Use cheerio to parse down the page to just the hero table
     let hero_table_items = hero_table('tbody').find('tr'); // Get an iterable object of heroes on the hero table
 
-    for(let loop_count = 0; loop_count < 9 || loop_count < hero_table_items.length; loop_count++) // Get the top heroes this person plays, up to 10 heroes
+    for(let loop_count = 0; loop_count < hero_table_items.length; loop_count++) // Get the top heroes this person plays
     {
         let c_hero_table_item = hero_table(hero_table_items[loop_count]); // Cheerio wrapper for the hero_table_items[] object currently being evaluated
 
         try
         {
             let temp_parse = c_hero_table_item.find('a[class=color-white]').text(); // This will attempt to look for a hero
-            top_ten_heroes.push(temp_parse.toLocaleLowerCase());
+            comp_heroes.push(temp_parse.toLocaleLowerCase());
         }
         catch
         {
@@ -198,7 +198,7 @@ async function overbuffPlayerScout(battle_tag)
     }
 
     console.log(`Finished scouting ${battle_tag}`);
-    return processOverbuffArrays(roles, ranks, top_ten_heroes); // Returned the processed data. Will return an object with the structure: [{role, sr, top_three_heroes}]
+    return processOverbuffArrays(roles, ranks, comp_heroes); // Returned the processed data. Will return an object with the structure: [{role, sr, top_three_heroes}]
 }
 
 // Will scout multiple battle tags and sort them based on each player's highest rated SR
@@ -218,7 +218,7 @@ async function overbuffTeamScout(battle_tag_array)
 }
 
 // Process the arrays that overbuffPlayerLookup() finds.
-function processOverbuffArrays(roles, ranks, top_ten_heroes)
+function processOverbuffArrays(roles, ranks, hero_list)
 {
     const tank_heroes    = ["d.va", "orisa", "reinhardt", "roadhog", "sigma", "winston", "wrecking ball", "zarya"]; // List of all tank heros in the game (in the format overbuff stores them)
     const dps_heroes     = ["ashe", "bastion", "doomfist", "echo", "genji", "hanzo", "junkrat", "mccree", "mei", "pharah", "soldier: 76", "sombra", "symmetra", "torbjörn", "tracer", "widowmaker"]; // List of all DPS heros in the game (in the format overbuff stores them)
@@ -251,13 +251,13 @@ function processOverbuffArrays(roles, ranks, top_ten_heroes)
         }
 
         let hero_array = [] // Array that will hold the top 3 heroes for the current role
-        for(let i = 0; i < top_ten_heroes.length && hero_array.length < 3; i++) // For every hero in this player's top 10, match the heroes that are within the current role being processed
+        for(let i = 0; i < hero_list.length && hero_array.length < 3; i++) // For every hero in this player's top competitive heroes, match the heroes that are within the current role being processed
         {
             for(let j = 0; j < heroes_to_iterate.length && hero_array.length < 3; j++)
             {
-                if(top_ten_heroes[i].includes(heroes_to_iterate[j])) // If the hero in the player's top ten is in the hero array, add that hero to the top 3 heroes for that role
+                if(hero_list[i].includes(heroes_to_iterate[j])) // If the hero in the player's top heroes is in the hero array, add that hero to the top 3 heroes for that role
                 {
-                    hero_array.push(top_ten_heroes[i])
+                    hero_array.push(hero_list[i])
                     continue;
                 }
             }

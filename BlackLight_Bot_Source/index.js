@@ -31,10 +31,10 @@ const COMMAND_END_QUIZ       = "endquiz";
 const COMMAND_SCOUT          = "scout";
 
 // Bot variables stored in text files
-//const LOGIN_TOKEN   = String(fs.readFileSync('login_token.txt'));       // Bot login token. Token is kept in a plain text file
-//const CLIENT_ID     = String(fs.readFileSync('client_id.txt'));         // Bot client id. Id is kept in a plain text file
-const LOGIN_TOKEN   = String(fs.readFileSync('login_token_test.txt'));  // Test Bot login token
-const CLIENT_ID     = String(fs.readFileSync('client_id_test.txt'));    // Test Bot client Id
+const LOGIN_TOKEN   = String(fs.readFileSync('login_token.txt'));       // Bot login token. Token is kept in a plain text file
+const CLIENT_ID     = String(fs.readFileSync('client_id.txt'));         // Bot client id. Id is kept in a plain text file
+//const LOGIN_TOKEN   = String(fs.readFileSync('login_token_test.txt'));  // Test Bot login token
+//const CLIENT_ID     = String(fs.readFileSync('client_id_test.txt'));    // Test Bot client Id
 const CHANNEL_WHITELIST_PATH = './bot_assets/channel_whitelist.txt';    // Path of the text file that stores the channel white list
 let channel_whitelist = ''; //Holds all channels the bot can post advanced commands in (helps prevent spam)
 
