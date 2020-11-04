@@ -18,7 +18,7 @@ const fs = require('fs');
 
 // Bot information and command delimiters
 const BOT_NAME               = "BlackLight Bot";
-const BOT_VERSION            = '1.2';
+const BOT_VERSION            = '1.3';
 const COMMAND_DELIM          = "/bb";
 const COMMAND_HELP           = "help";
 const COMMAND_ADD_CHANNEL    = "addchannel";
