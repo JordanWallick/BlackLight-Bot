@@ -1,23 +1,22 @@
---- 
-jobs: 
-  deploy: 
-    runs-on: ubuntu-latest
-    steps: 
-      - 
-        host: "${{secrets.SSH_HOST}}"
-        name: "Update BlackLight Bot and Redeploy"
-        password: "${{secrets.SSH_PASSWORD}}"
-        script: |-
-            cd applications/BlackLight-Bot
-            git pull
-            cd BlackLight_Bot_Source
-            npm install
-            pm2 restart index.js
-        username: "${{secrets.SSH_USERNAME}}"
-        uses: appleboy/ssh-action@v0.1.2
-        with: ~
-name: "Update BlackLight Bot"
-true: 
-  push: 
-    branches: 
-      - main
+name: Update BlackLight Bot
+ 
+on:
+  push:
+    branches: [main]
+ 
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Update BlackLight Bot and Redeploy
+            uses: appleboy/ssh-action@v0.1.2
+            with:
+                host: ${{secrets.SSH_HOST}}
+                username: ${{secrets.SSH_USERNAME}}
+                password: ${{secrets.SSH_PASSWORD}}
+                script: |
+                    cd applications/BlackLight-Bot
+                    git pull
+                    cd BlackLight_Bot_Source
+                    npm install
+                    pm2 restart index.js
