@@ -31,15 +31,15 @@ const COMMAND_END_QUIZ       = "endquiz";
 const COMMAND_SCOUT          = "scout";
 
 // Important file paths
-const BOT_LOGIN_TOKEN_PATH      = "./bot_assets/login_token.txt"; // Path of the text file containing the bot's login token
-const BOT_CLIENT_ID_PATH        = "./bot_assets/client_id.txt"; // Path of the text file containing the bot's client Id token
-const TEST_BOT_LOGIN_TOKEN_PATH = "./bot_assets/login_token_test.txt"; // Path of the text file containing the test bot's login token
-const TEST_BOT_CLIENT_ID_PATH   = "./bot_assets/login_token_test.txt"; // Path of the text file containing the test bot's client Id token
+const BOT_LOGIN_TOKEN_PATH      = "./bot_assets/login_token.txt";       // Path of the text file containing the bot's login token
+const BOT_CLIENT_ID_PATH        = "./bot_assets/client_id.txt";         // Path of the text file containing the bot's client Id token
+const TEST_BOT_LOGIN_TOKEN_PATH = "./bot_assets/login_token_test.txt";  // Path of the text file containing the test bot's login token
+const TEST_BOT_CLIENT_ID_PATH   = "./bot_assets/login_token_test.txt";  // Path of the text file containing the test bot's client Id token
 const CHANNEL_WHITELIST_PATH    = './bot_assets/channel_whitelist.txt'; // Path of the text file that stores the channel white list
 
 // Bot variables stored in text files
-const LOGIN_TOKEN   = String(fs.readFileSync(BOT_LOGIN_TOKEN_PATH));     // Bot login token
-const CLIENT_ID     = String(fs.readFileSync(BOT_CLIENT_ID_PATH));       // Bot client id
+const LOGIN_TOKEN   = String(fs.readFileSync(BOT_LOGIN_TOKEN_PATH, 'utf8'));     // Bot login token
+const CLIENT_ID     = String(fs.readFileSync(BOT_CLIENT_ID_PATH, 'utf8'));       // Bot client id
 let channel_whitelist = ''; //Holds all channels the bot can post advanced commands in (helps prevent spam)
 
 // When the bot is ready to come online
