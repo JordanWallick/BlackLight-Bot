@@ -15,7 +15,10 @@ jobs:
           username: ${{secrets.SSH_USERNAME}}
           password: ${{secrets.SSH_PASSWORD}}
           script: |
-            cd applications/BlackLightBot/BlackLight-Bot
+            cd applications/BlackLight-Bot/BlackLight_Bot_Source
+			pm2 stop
+			cd ..
             git pull
-            npm install
-            pm2 restart index.js
+            cd BlackLight_Bot_Source
+			npm install
+            pm2 start BlackLight_Bot_Source/index.js
