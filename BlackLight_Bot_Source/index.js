@@ -18,7 +18,7 @@ const fs = require('fs');
 
 // Bot information and command delimiters
 const BOT_NAME               = "BlackLight Bot";
-const BOT_VERSION            = '1.0';
+const BOT_VERSION            = '1.1';
 const COMMAND_DELIM          = "/bb";
 const COMMAND_HELP           = "help";
 const COMMAND_ADD_CHANNEL    = "addchannel";
@@ -30,12 +30,16 @@ const COMMAND_RESUME_QUIZ    = "resume";
 const COMMAND_END_QUIZ       = "endquiz";
 const COMMAND_SCOUT          = "scout";
 
+// Important file paths
+const BOT_LOGIN_TOKEN_PATH      = "./bot_assets/login_token.txt"; // Path of the text file containing the bot's login token
+const BOT_CLIENT_ID_PATH        = "./bot_assets/client_id.txt"; // Path of the text file containing the bot's client Id token
+const TEST_BOT_LOGIN_TOKEN_PATH = "./bot_assets/login_token_test.txt"; // Path of the text file containing the test bot's login token
+const TEST_BOT_CLIENT_ID_PATH   = "./bot_assets/login_token_test.txt"; // Path of the text file containing the test bot's client Id token
+const CHANNEL_WHITELIST_PATH    = './bot_assets/channel_whitelist.txt'; // Path of the text file that stores the channel white list
+
 // Bot variables stored in text files
-const LOGIN_TOKEN   = String(fs.readFileSync('login_token.txt'));       // Bot login token. Token is kept in a plain text file
-const CLIENT_ID     = String(fs.readFileSync('client_id.txt'));         // Bot client id. Id is kept in a plain text file
-//const LOGIN_TOKEN   = String(fs.readFileSync('login_token_test.txt'));  // Test Bot login token
-//const CLIENT_ID     = String(fs.readFileSync('client_id_test.txt'));    // Test Bot client Id
-const CHANNEL_WHITELIST_PATH = './bot_assets/channel_whitelist.txt';    // Path of the text file that stores the channel white list
+const LOGIN_TOKEN   = String(fs.readFileSync(BOT_LOGIN_TOKEN_PATH));     // Bot login token
+const CLIENT_ID     = String(fs.readFileSync(BOT_CLIENT_ID_PATH));       // Bot client id
 let channel_whitelist = ''; //Holds all channels the bot can post advanced commands in (helps prevent spam)
 
 // When the bot is ready to come online
@@ -43,7 +47,10 @@ thisBot.on('ready', () =>
 {
     channel_whitelist = fs.readFileSync(CHANNEL_WHITELIST_PATH, 'utf8'); // Copy all stored channels that were previously in the whitelist to the variable
     thisBot.user.setActivity(`${COMMAND_DELIM} ${COMMAND_HELP}`, {type: "PLAYING"}); // Set the bot's status to show users the initial command to use the bot
-    console.log('BlackLight Bot is online!');
+    if(fs.readFileSync(TEST_BOT_CLIENT_ID_PATH) == CLIENT_ID) // If the bot is using the testing bot, log that information
+        console.log('BlackLight Bot is online and on testing client!');
+    else
+        console.log('BlackLight Bot is online!');
 })
 
 // Every time a message is posted on a server the bot is in

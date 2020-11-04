@@ -17,7 +17,5 @@ jobs:
           script: |
             cd applications/BlackLightBot/BlackLight-Bot
             git pull
-            ${{secrets.GH_USERNAME}}
-            ${{secrets.GH_PASSWORD}}
             npm install
             pm2 restart index.js
