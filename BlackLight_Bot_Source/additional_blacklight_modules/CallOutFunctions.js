@@ -12,7 +12,7 @@ import {titleCase} from './HelperFunctions.js';
 const COMMAND_DELIM          = "/bb";
 const COMMAND_HELP           = "help";
 const COMMAND_ADD_CHANNEL    = "addchannel";
-const COMMAND_REMOVE_CHANNEL = "removechannel"
+const COMMAND_REMOVE_CHANNEL = "removechannel";
 const COMMAND_LEARN_MAP      = "learn";
 const COMMAND_QUIZ_MAP       = "quiz";
 const COMMAND_PAUSE_QUIZ     = "pause";
@@ -23,10 +23,13 @@ const COMMAND_SCOUT          = "scout";
 // Main quiz function
 export async function quiz(original_message, map, players)
 {
+    let answer_array;
+    let question_array;
+
     // First off, check if the map the user provided exists in the files
     try
     {
-        answer_array    = getMapAnswerArray(map);
+        //answer_array  = getMapAnswerArray(map);
         question_array  = getMapQuestionArray(map);
     }
     catch(error)
@@ -53,9 +56,6 @@ export async function quiz(original_message, map, players)
     }
     await original_message.channel.send(`${begin_quiz_string} for the map ${titleCase(map)}!`);
 
-    let answer_array;
-    let question_array;
-    
     let user_scores = []; // Array that will be 1 to 1 with players to track that user's score in the game
     for(let loop_count = 0; loop_count < players.length; loop_count++)
     {

@@ -15,13 +15,18 @@ const cheerio   = require('cheerio');
 const COMMAND_DELIM          = "/bb";
 const COMMAND_HELP           = "help";
 const COMMAND_ADD_CHANNEL    = "addchannel";
-const COMMAND_REMOVE_CHANNEL = "removechannel"
+const COMMAND_REMOVE_CHANNEL = "removechannel";
 const COMMAND_LEARN_MAP      = "learn";
 const COMMAND_QUIZ_MAP       = "quiz";
 const COMMAND_PAUSE_QUIZ     = "pause";
 const COMMAND_RESUME_QUIZ    = "resume";
 const COMMAND_END_QUIZ       = "endquiz";
 const COMMAND_SCOUT          = "scout";
+
+// Overwatch Heroes
+const tank_heroes    = ["d.va", "orisa", "reinhardt", "roadhog", "sigma", "winston", "wrecking ball", "zarya"]; // List of all tank heros in the game (in the format overbuff stores them)
+const dps_heroes     = ["ashe", "bastion", "doomfist", "echo", "genji", "hanzo", "junkrat", "mccree", "mei", "pharah", "soldier: 76", "sombra", "symmetra", "torbjörn", "tracer", "widowmaker"]; // List of all DPS heros in the game (in the format overbuff stores them)
+const support_heroes = ["ana", "baptiste", "brigitte", "lúcio", "mercy", "moira", "zenyatta"]; // List of all support heros in the game (in the format overbuff stores them)
 
 // Main scout command that will take the original message as well as it's content to scout player / team information and output in Discord
 // <TBD> Allow the team command to scout multiple teams from a bracket
@@ -100,27 +105,58 @@ async function overbuffPlayerScout(battle_tag)
     const numeric_id     = battle_tag_split[1];     // Numeric Id of a battle tag
 
     const overbuff_mainpage_url = "http://www.overbuff.com/players/pc/" + player_name + "-" + numeric_id + "?mode=competitive:formatted"; // URL of this player's competitive overbuff page
-    const overbuff_heroes_url = "http://www.overbuff.com/players/pc/"  + player_name + "-" + numeric_id + "/heroes?mode=competitive"; // URL of this player's top played heroes
+    let overbuff_heroes_url = "http://www.overbuff.com/players/pc/"  + player_name + "-" + numeric_id + "/heroes?mode=competitive"; // URL of this player's top played heroes
 
     let roles = []; // Array of every role this player is ranked in
     let ranks = []; // Array of sr that is directly associated with roles[]
-    let comp_heroes = []; // Array of the top heroes this player plays in competitive (will be sorted to top 3 for each role)
+    let heroes = []; // Array of the top heroes this player plays in competitive (will be sorted to top 3 for each role)
 
+    let roles_and_ranks = await searchOverbuffForCompData(overbuff_mainpage_url);
+    /*if(roles_and_ranks.length < 1) // If no roles were found for this player, check to see if the battle tag was not capitalized correctly (by using the Overbuff search feature)
+    {
+        roles_and_ranks = await searchForPlayer(battle_tag); //<TBD> Finish this
+    }*/
+
+    roles = roles_and_ranks.roles;
+    ranks = roles_and_ranks.ranks;
+
+    if(roles == undefined || roles.length < 0)
+        return []
+
+    let competitive_hero_data_flag = true;
+    heroes = await searchOverbuffForHeroes(overbuff_heroes_url);
+
+    if(heroes.length < 1) // If no heroes were found from the player's competitive data, take data from quick play
+    {
+        overbuff_heroes_url = "http://www.overbuff.com/players/pc/"  + player_name + "-" + numeric_id + "/heroes"; // URL of this player's top played quick play heroes
+        heroes = await searchOverbuffForHeroes(overbuff_heroes_url);
+        competitive_hero_data_flag = false;
+    }
+
+    console.log(`Finished scouting ${battle_tag}`);
+    return processOverbuffArrays(roles, ranks, {heroes: heroes, hero_data_is_competitive: competitive_hero_data_flag}); // Returned the processed data. Will return an object with the structure: [{role, sr, top_three_heroes}]
+}
+
+// Search Overbuff for role and ranking data
+async function searchOverbuffForCompData(overbuff_mainpage_url)
+{
+    let roles = []; // Array of every role this player is ranked in
+    let ranks = []; // Array of sr that is directly associated with roles[]
+    let html; // HTML of the player's overbuff URL
     // Get the html of the player's competitive overbuff page
-    let html;
     try
     {
         html = await rp(overbuff_mainpage_url);
     }
     catch
     {
-        console.log(`Unable to load Overbuff main page of ${battle_tag}`);
+        console.log(`Unable to load Overbuff page "${overbuff_mainpage_url}"`);
         return [];
     }
     
     if(html == undefined || html == null)
     {
-        console.log(`Overbuff main page of ${battle_tag} returned no data`);
+        console.log(`Overbuffpage "${overbuff_mainpage_url}" returned no data`);
         return [];
     }
 
@@ -134,11 +170,10 @@ async function overbuffPlayerScout(battle_tag)
     }
     catch
     {
-        console.log(`Parsing rank data for ${battle_tag} failed`);
+        console.log(`Parsing rank data from "${overbuff_mainpage_url}" failed`);
         return [];
     }
     
-
     // Iterate though the role queue ranking data in the HTML
     for(let loop_count = 0; loop_count < rankings_data_cells.length; loop_count++)
     {
@@ -160,6 +195,13 @@ async function overbuffPlayerScout(battle_tag)
         }
     }
 
+    return {roles: roles, ranks: ranks};
+}
+
+// Search an overbuff hero URL (either competitive or QP) for a list of heroes
+async function searchOverbuffForHeroes(overbuff_heroes_url)
+{
+    let html; // HTML of the overbuff hero page
     // Get the html of the player's heroes overbuff page
     try
     {
@@ -167,19 +209,20 @@ async function overbuffPlayerScout(battle_tag)
     }
     catch
     {
-        console.log(`Unable to load Overbuff hero page of ${battle_tag}`);
+        console.log(`Unable to load Overbuff hero page "${overbuff_heroes_url}"`);
         return [];
     }
     
     if(html == undefined || html == null)
     {
-        console.log(`Overbuff hero page of ${battle_tag} returned no data`);
+        console.log(`Overbuff hero page "${overbuff_heroes_url}" returned no data`);
         return [];
     }
 
-    page_html = cheerio.load(html); // Use cheerio to get the entire page's HTML structure
+    let page_html = cheerio.load(html); // Use cheerio to get the entire page's HTML structure
     let hero_table = cheerio.load(page_html('div[class=table-with-filter-tabs]').html()); // Use cheerio to parse down the page to just the hero table
     let hero_table_items = hero_table('tbody').find('tr'); // Get an iterable object of heroes on the hero table
+    let hero_list = [];
 
     for(let loop_count = 0; loop_count < hero_table_items.length; loop_count++) // Get the top heroes this person plays
     {
@@ -188,17 +231,68 @@ async function overbuffPlayerScout(battle_tag)
         try
         {
             let temp_parse = c_hero_table_item.find('a[class=color-white]').text(); // This will attempt to look for a hero
-            comp_heroes.push(temp_parse.toLocaleLowerCase());
+            hero_list.push(temp_parse.toLocaleLowerCase());
         }
         catch
         {
-            console.log(`Was unable to parse top hero data for ${battle_tag}`);
+            console.log(`Was unable to parse top hero data on page "${overbuff_heroes_url}"`);
             return [];
         }
     }
 
-    console.log(`Finished scouting ${battle_tag}`);
-    return processOverbuffArrays(roles, ranks, comp_heroes); // Returned the processed data. Will return an object with the structure: [{role, sr, top_three_heroes}]
+    return hero_list;
+}
+
+// Will use Overbuff's search player feature to look for the player that is to be scouted
+// <TBD> Finish this
+async function searchForPlayer(battle_tag)
+{
+    const overbuff_search_url = "http://www.overbuff.com/search?q=" + battle_tag.replace('#', '-'); // Search for the player's battle tag
+    let html; // HTML of the overbuff search page
+    // Get the html of the player's heroes overbuff page
+    try
+    {
+        html = await rp(overbuff_search_url);
+    }
+    catch
+    {
+        console.log(`Unable to load Overbuff search page "${overbuff_search_url}"`);
+        return [];
+    }
+    // var options = {
+    //     uri: overbuff_search_url,
+    //     json: true
+    // }
+    // html = await rp(options);
+    
+    if(html == undefined || html == null)
+    {
+        console.log(`Overbuff search page "${overbuff_search_url}" returned no data`);
+        return [];
+    }
+
+    let page_html = cheerio.load(html); // Use cheerio to get the entire page's HTML structure
+    let search_results = cheerio.load(page_html('div[class=search-results]').html()); // Use cheerio to parse down the page to just the search results
+    let search_results_items = search_results('a[class=SearchResult]'); // Get an iterable object of heroes on the hero table
+    let hero_list = [];
+
+    for(let loop_count = 0; loop_count < hero_table_items.length; loop_count++) // Get the top heroes this person plays
+    {
+        let c_hero_table_item = hero_table(hero_table_items[loop_count]); // Cheerio wrapper for the hero_table_items[] object currently being evaluated
+
+        try
+        {
+            let temp_parse = c_hero_table_item.find('a[class=color-white]').text(); // This will attempt to look for a hero
+            hero_list.push(temp_parse.toLocaleLowerCase());
+        }
+        catch
+        {
+            console.log(`Was unable to parse search data on page "${overbuff_search_url}"`);
+            return [];
+        }
+    }
+
+    return hero_list;
 }
 
 // Will scout multiple battle tags and sort them based on each player's highest rated SR
@@ -218,12 +312,8 @@ async function overbuffTeamScout(battle_tag_array)
 }
 
 // Process the arrays that overbuffPlayerLookup() finds.
-function processOverbuffArrays(roles, ranks, hero_list)
+function processOverbuffArrays(roles, ranks, hero_list_obj)
 {
-    const tank_heroes    = ["d.va", "orisa", "reinhardt", "roadhog", "sigma", "winston", "wrecking ball", "zarya"]; // List of all tank heros in the game (in the format overbuff stores them)
-    const dps_heroes     = ["ashe", "bastion", "doomfist", "echo", "genji", "hanzo", "junkrat", "mccree", "mei", "pharah", "soldier: 76", "sombra", "symmetra", "torbjörn", "tracer", "widowmaker"]; // List of all DPS heros in the game (in the format overbuff stores them)
-    const support_heroes = ["ana", "baptiste", "brigitte", "lúcio", "mercy", "moira", "zenyatta"]; // List of all support heros in the game (in the format overbuff stores them)
-
     let player_data = []; // Array that will hold a list of all a player's roles they are ranked in, their srs, and the top 3 heroes in each of those roles in the structure [{role, sr, top_three_heroes}]
 
     // This structure will take a person's top 10 heroes and sort out their top 3 for every role they are ranked in
@@ -250,6 +340,7 @@ function processOverbuffArrays(roles, ranks, hero_list)
                 return -1;
         }
 
+        let hero_list = hero_list_obj.heroes; // List of heroes from either competitive or qp
         let hero_array = [] // Array that will hold the top 3 heroes for the current role
         for(let i = 0; i < hero_list.length && hero_array.length < 3; i++) // For every hero in this player's top competitive heroes, match the heroes that are within the current role being processed
         {
@@ -263,7 +354,7 @@ function processOverbuffArrays(roles, ranks, hero_list)
             }
         }
 
-        player_data.push({role: roles[loop_count], sr: ranks[loop_count], top_three_heroes: hero_array});
+        player_data.push({role: roles[loop_count], sr: ranks[loop_count], top_three_heroes: hero_array, hero_data_is_competitive: hero_list_obj.hero_data_is_competitive});
     }
 
     player_data.sort((a, b) => {return b.sr - a.sr}); // Sort player_data[] based on sr. The role with the highest sr will be first
@@ -368,8 +459,14 @@ async function discordOutputOverwatchPlayerData(original_message, battle_tag, pl
     else
     {
         for(let loop_count = 0; loop_count < player_ranks.length; loop_count++) // For every role the player is ranked in, add their info to the Discord embed
-            player_scout_embed.addField(titleCase(player_ranks[loop_count].role), "SR: " + player_ranks[loop_count].sr + "\n" + await getHeroesOutputString(original_message, player_ranks[loop_count].top_three_heroes));
+        {
+            let scouting_string = `SR: ${player_ranks[loop_count].sr}\n${await getHeroesOutputString(original_message, player_ranks[loop_count].top_three_heroes)}` // String that will output for every rank a player has
+            
+            if(player_ranks.hero_data_is_competitive !== undefined && !player_ranks.hero_data_is_competitive) // If the hero data that was obtained was from quick play, add the disclaimer
+                scouting_string += " [QP Data]";
 
+            player_scout_embed.addField(titleCase(player_ranks[loop_count].role), scouting_string);
+        }
         player_scout_embed.setFooter("All stats obtained from https://www.overbuff.com/");
     }
     
@@ -395,9 +492,9 @@ async function discordOutputTeamPlayerData(original_message, team_name, team_pla
         for(let team_mem_lc = 0; team_mem_lc < team_players_data.length; team_mem_lc++) // For every player on this team, add all competitive data to the embed and calculate average
         {
             let current_player = team_players_data[team_mem_lc]; // The current player being appended to the embed
-            let current_player_comp_data = current_player.player_data; // The competitive data of the current player
+            let current_player_data = current_player.player_data; // The competitive data of the current player
 
-            if(current_player_comp_data == undefined) // If the player's overbuff URL was not able to be parsed...
+            if(current_player_data == undefined) // If the player's overbuff URL was not able to be parsed...
             {
                 team_scout_embed.addField(current_player.battle_tag + "'s Info", "Error: Could not parse player's data from Overbuff");
                 continue;
@@ -413,11 +510,13 @@ async function discordOutputTeamPlayerData(original_message, team_name, team_pla
             let scouting_string = "";
             try
             {
-                for(let roles_lc = 0; roles_lc < current_player_comp_data.length; roles_lc++)
+                for(let roles_lc = 0; roles_lc < current_player_data.length; roles_lc++)
                 {
-                    scouting_string += titleCase(current_player_comp_data[roles_lc].role) + " SR: **" + current_player_comp_data[roles_lc].sr + "** " + await getHeroesOutputString(original_message, current_player_comp_data[roles_lc].top_three_heroes);
+                    scouting_string += titleCase(current_player_data[roles_lc].role) + " SR: **" + current_player_data[roles_lc].sr + "** " + await getHeroesOutputString(original_message, current_player_data[roles_lc].top_three_heroes);
 
-                    if(roles_lc < current_player_comp_data.length - 1) // Append a new line character if this is not the last loop
+                    if(current_player_data[roles_lc].top_three_heroes.length > 0 && !current_player_data[roles_lc].hero_data_is_competitive) // If the hero data that was obtained was from quick play, add the disclaimer
+                        scouting_string += " [QP Data]"
+                    if(roles_lc < current_player_data.length - 1) // Append a new line character if this is not the last loop
                         scouting_string += "\n";
                 }
                     team_scout_embed.addField(current_player.battle_tag + "'s Info", scouting_string);
@@ -438,14 +537,36 @@ async function discordOutputTeamPlayerData(original_message, team_name, team_pla
     await original_message.channel.send(team_scout_embed);
 }
 
+// Will check to make sure the server has emojis for most heroes
+async function heroEmojisOnServer(original_message)
+{
+    let number_of_emojis = 0; // The number of emojis found that
+    const minimum_number_of_emojis = 25; // The minimum number of emojis that must be present on the server for this function to return true
+    const all_heroes_array = tank_heroes.concat(dps_heroes.concat(support_heroes)); // Array of all heroes
+
+    // For every hero in Overwatch, check to see if the server being posted on has at least minimum_number_of_emojis of Overwatch hero emojis on the server
+    for(let loop_count = 0; loop_count < all_heroes_array.length; loop_count++)
+    {
+        if(number_of_emojis >= minimum_number_of_emojis)
+            return true;
+
+        if(await original_message.guild.emojis.find(emoji => emoji.name === all_heroes_array[loop_count]) !== null)
+            number_of_emojis++;
+    }
+
+    return false;
+}
+
+
 // Get the emoji names for a players top 3 heroes and return them as a printable string
-//<TBD> Do something if the server does not have hero emojis
 async function getHeroesOutputString(original_message, hero_name_array)
 {
     let special_hero_names      = ["d.va", "soldier: 76", "torbjörn", "lúcio", "wrecking ball"]; // Hero names in overbuff that have special characters that cannot exist in Discord emoji names
     let server_hero_emoji_names  = ["dva", "soldier76", "torbjorn", "lucio", "wreckingball"]; // The associated names of the hero emojis used in some servers BlackLight is on
 
     let hero_emojis_string = ""; // String of every hero emoji to be appended to this role's information
+    const use_emojis = await heroEmojisOnServer(original_message); // Checks if there are enough emojis on the server to justify using them in the output
+
     if(hero_name_array !== undefined | hero_name_array !== null)
     {
         for(let i = 0; i < hero_name_array.length; i++)
@@ -457,27 +578,30 @@ async function getHeroesOutputString(original_message, hero_name_array)
             }
 
             let current_hero_emoji = "";
-            for(let loop_count = 0; loop_count < special_hero_names.length; loop_count++) // For every hero name that contains a special character, look to see if the passed hero name is one of them and translate them to the names of the Discord emojis
+            if(use_emojis)
             {
-                if(hero_name_array[i].includes(special_hero_names[loop_count]))
+                for(let loop_count = 0; loop_count < special_hero_names.length; loop_count++) // For every hero name that contains a special character, look to see if the passed hero name is one of them and translate them to the names of the Discord emojis
                 {
-                    current_hero_emoji = await original_message.guild.emojis.find(emoji => emoji.name === server_hero_emoji_names[loop_count]);
-                    break;
+                    if(hero_name_array[i].includes(special_hero_names[loop_count]))
+                    {
+                        current_hero_emoji = await original_message.guild.emojis.find(emoji => emoji.name === server_hero_emoji_names[loop_count]);
+                        break;
+                    }
                 }
+
+                if(current_hero_emoji == "") // If the hero emoji was not yet set because it does not contain special characters...
+                    current_hero_emoji = await original_message.guild.emojis.find(emoji => emoji.name === hero_name_array[i]);
+
+                if(current_hero_emoji !== null) // If the hero emoji name was found, add it to the output string. Otherwise, simply append the name of the hero to the output string
+                    hero_emojis_string += ` ${current_hero_emoji}`;
             }
-
-            if(current_hero_emoji == "") // If the hero emoji was not yet set because it does not contain special characters...
-                current_hero_emoji = await original_message.guild.emojis.find(emoji => emoji.name === hero_name_array[i]);
-
-            if(current_hero_emoji !== null) // If the hero emoji name was found, add it to the output string. Otherwise, simply append the name of the hero to the output string
-                hero_emojis_string += ` ${current_hero_emoji}`;
             else
-                hero_emojis_string += ` **${titleCase(hero_name_array[i])}**`;
+                hero_emojis_string += ` **[${titleCase(hero_name_array[i])}]**`;
         }
     }
     
     if(hero_emojis_string == '')
-        return "No current season hero data";
+        return "No hero data";
 
     return `Heroes: ${hero_emojis_string}`;
 }

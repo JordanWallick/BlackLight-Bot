@@ -18,11 +18,11 @@ const fs = require('fs');
 
 // Bot information and command delimiters
 const BOT_NAME               = "BlackLight Bot";
-const BOT_VERSION            = '1.3';
+const BOT_VERSION            = '1.4';
 const COMMAND_DELIM          = "/bb";
 const COMMAND_HELP           = "help";
 const COMMAND_ADD_CHANNEL    = "addchannel";
-const COMMAND_REMOVE_CHANNEL = "removechannel"
+const COMMAND_REMOVE_CHANNEL = "removechannel";
 const COMMAND_LEARN_MAP      = "learn";
 const COMMAND_QUIZ_MAP       = "quiz";
 const COMMAND_PAUSE_QUIZ     = "pause";
@@ -69,7 +69,7 @@ thisBot.on('message', async message =>
         let input_command = "";
         try
         {
-            input_command = input_message.split(" ")
+            input_command = input_message.split(" ");
         }
         catch(error)
         {
@@ -96,7 +96,7 @@ thisBot.on('message', async message =>
                     `${COMMAND_DELIM} ${COMMAND_QUIZ_MAP} <map> - Will quiz you or a group of all call outs for a specific map\n` +
                     "\n**Supported Maps**\nAssault: n/a\nEscort: Dorado \nHybrid: Eichenwalde\nControl: n/a")
                 .addField("**Scouting Commands**",
-                    `${COMMAND_DELIM} ${COMMAND_SCOUT} <BATTLE TAG / GAMEBATTLES TEAM URL> - Will search Overbuff for an individual or an entire Gamebattles team.`)
+                    `${COMMAND_DELIM} ${COMMAND_SCOUT} <BATTLE TAG(S) / GAMEBATTLES TEAM URL> - Will search Overbuff for a battle tag, a list of battle tags, or an entire Gamebattles team.`)
                 .setFooter(`Bot version ${BOT_VERSION}\nDeveloped by BlackLight#9996\nDM me know if you have any suggestions or bug reports`);
                 message.channel.sendEmbed(help_embed);
                 return;
