@@ -1,0 +1,3 @@
+Version 1.6 Update
+-Added a command to scout an entire team's upcoming matches.
+-Added team icons to embed output.

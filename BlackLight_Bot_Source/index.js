@@ -8,7 +8,7 @@
 // Imports
 import {createRequire} from 'module';
 const require = createRequire(import.meta.url);
-import {scout} from './additional_blacklight_modules/ScoutingFunctions.js';
+import {scout, scoutMatches} from './additional_blacklight_modules/ScoutingFunctions.js';
 import {quiz, learn} from './additional_blacklight_modules/CallOutFunctions.js';
 
 // Libraries and APIs
@@ -18,7 +18,7 @@ const fs = require('fs');
 
 // Bot information and command delimiters
 const BOT_NAME               = "BlackLight Bot";
-const BOT_VERSION            = '1.5'; // Updated to 1.4 on 11/22/2020
+const BOT_VERSION            = '1.6'; // Updated to 1.6 on 2/11/2021
 const COMMAND_DELIM          = "/bb";
 const COMMAND_HELP           = "help";
 const COMMAND_ADD_CHANNEL    = "addchannel";
@@ -29,6 +29,7 @@ const COMMAND_PAUSE_QUIZ     = "pause";
 const COMMAND_RESUME_QUIZ    = "resume";
 const COMMAND_END_QUIZ       = "endquiz";
 const COMMAND_SCOUT          = "scout";
+const COMMAND_SCOUT_MATCHES  = "scoutmatches";
 
 // Important file paths
 const BOT_LOGIN_TOKEN_PATH      = "./bot_assets/login_token.txt";       // Path of the text file containing the bot's login token
@@ -40,6 +41,8 @@ const CHANNEL_WHITELIST_PATH    = './bot_assets/channel_whitelist.txt'; // Path 
 // Bot variables stored in text files
 const LOGIN_TOKEN   = String(fs.readFileSync(BOT_LOGIN_TOKEN_PATH, 'utf8'));     // Bot login token
 const CLIENT_ID     = String(fs.readFileSync(BOT_CLIENT_ID_PATH, 'utf8'));       // Bot client id
+//const LOGIN_TOKEN   = String(fs.readFileSync(TEST_BOT_LOGIN_TOKEN_PATH, 'utf8'));     // ENABLE FOR TEST BOT CLIENT
+//const CLIENT_ID     = String(fs.readFileSync(TEST_BOT_CLIENT_ID_PATH, 'utf8'));       // ENABLE FOR TEST BOT CLIENT
 let channel_whitelist = ''; //Holds all channels the bot can post advanced commands in (helps prevent spam)
 
 // When the bot is ready to come online
@@ -90,13 +93,14 @@ thisBot.on('message', async message =>
                     `${COMMAND_DELIM} ${COMMAND_HELP} - Displays this message 😊\n `+
                     `${COMMAND_DELIM} ${COMMAND_ADD_CHANNEL} - Add a channel to the command whitelist\n` +
                     `${COMMAND_DELIM} ${COMMAND_REMOVE_CHANNEL} - Remove a channel from the command whitelist`)
-                .addField('**Call Out Commands**',
+                .addField('**Call Out Commands (DISABLED INDEFINITELY)**',
                     `${COMMAND_DELIM} ${COMMAND_LEARN_MAP} <map> - Displays all answer keys for a specific map\n` +
                     `${COMMAND_DELIM} ${COMMAND_QUIZ_MAP} - Will quiz you or a group on all call outs for a random area of a random map\n` +
                     `${COMMAND_DELIM} ${COMMAND_QUIZ_MAP} <map> - Will quiz you or a group of all call outs for a specific map\n` +
-                    "\n**Supported Maps**\nAssault: n/a\nEscort: Dorado \nHybrid: Eichenwalde\nControl: n/a")
+                    "\n**Supported Maps**\nn/a")
                 .addField("**Scouting Commands**",
-                    `${COMMAND_DELIM} ${COMMAND_SCOUT} <BATTLE TAG(S) / GAMEBATTLES TEAM URL> - Will search Overbuff for a battle tag, a list of battle tags, or an entire Gamebattles team.`)
+                    `${COMMAND_DELIM} ${COMMAND_SCOUT} <BATTLE TAG(S) / GAMEBATTLES TEAM URL> - Will search Overbuff for a battle tag, a list of battle tags, or an entire Gamebattles team.\n` +
+                    `${COMMAND_DELIM} ${COMMAND_SCOUT_MATCHES} <GAMEBATTLES TEAM URL> - Will scout all previous and upcoming matches for this team (the gamebattles URL should be for **your** team if you are interested in **your** matches).`)
                 .setFooter(`Bot version ${BOT_VERSION}\nDeveloped by BlackLight#9996\nDM me know if you have any suggestions or bug reports`);
                 message.channel.sendEmbed(help_embed);
                 return;
@@ -140,7 +144,7 @@ thisBot.on('message', async message =>
         {
             // User requests to learn a map's call outs
             case COMMAND_LEARN_MAP:
-                console.log(`Learn request from ${message_author} (${author_id}): "${message.content}"`);
+                /*console.log(`Learn request from ${message_author} (${author_id}): "${message.content}"`);
                 var input_map = "";
                 try
                 {
@@ -152,12 +156,13 @@ thisBot.on('message', async message =>
                     return;
                 }
 
-                await learn(message, input_map);
+                await learn(message, input_map);*/
+                message.channel.send("Command disabled indefinitely.");
                 return;
             
             // User requests to be quizzed on a map
             case COMMAND_QUIZ_MAP:
-                console.log(`Quiz request from ${message_author} (${author_id}): "${message.content}"`);
+                /*console.log(`Quiz request from ${message_author} (${author_id}): "${message.content}"`);
                 var input_map = "";
                 try
                 {
@@ -170,7 +175,8 @@ thisBot.on('message', async message =>
                 }
                 
                 const additional_commands = {pause: COMMAND_PAUSE_QUIZ, resume: COMMAND_RESUME_QUIZ, end: COMMAND_END_QUIZ}
-                quiz(message, input_map, await getPlayers(message), additional_commands); // Call the quiz function, passing it the message, parsed map name, and a list of players
+                quiz(message, input_map, await getPlayers(message), additional_commands); // Call the quiz function, passing it the message, parsed map name, and a list of players*/
+                message.channel.send("Command disabled indefinitely.");
                 return;
 
             // User requested to scout an individual or team
@@ -188,7 +194,27 @@ thisBot.on('message', async message =>
                     return;
                 }
 
+                message.channel.send("Scouting in progress. Please wait...");
                 await scout(message, string_to_scout); // Call the scout function, passing it the individual(s) or team(s) to be scouted
+                return;
+
+            case COMMAND_SCOUT_MATCHES:
+                console.log(`Matches scouting request from ${message_author} (${author_id}): "${message.content}"`);
+
+                let gb_team_url_to_parse; // The player or team to get scouting information on
+                try
+                {
+                    gb_team_url_to_parse = input_message.replace(`${COMMAND_DELIM} ${COMMAND_SCOUT}`,'').trim(); // Anything past the command delimiter and scout command is to be parsed
+                }
+                catch(error)
+                {
+                    message.channel.send("Last argument must be a valid gamebattles team URL.");
+                    return;
+                }
+
+                await message.channel.send("Scouting matches started. This may take a hot second...");
+                await scoutMatches(message, gb_team_url_to_parse); // Call the scout function, passing it the individual(s) or team(s) to be scouted
+                await message.channel.send("Scouting completed 😊");
                 return;
         }
     }

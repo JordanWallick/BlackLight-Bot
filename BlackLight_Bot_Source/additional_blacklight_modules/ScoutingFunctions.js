@@ -50,7 +50,7 @@ export async function scout(original_message, string_to_scout)
         {
             original_message.channel.send("Scouting players. Please wait...");
             const scouted_team_data = await overbuffTeamScout(battle_tag_array);
-            discordOutputTeamPlayerData(original_message, "User Input Team", scouted_team_data);
+            await discordOutputTeamPlayerData(original_message, "User Input Team", scouted_team_data);
         }
         else // If only one battle tag was given, give the output as an individual
         {
@@ -62,7 +62,6 @@ export async function scout(original_message, string_to_scout)
     }
     else if(string_to_scout.match(gamebattles_team_regex) != null) // If the user passed a gamebattles team URL...
     {
-        original_message.channel.send("Scouting team. Please wait...");
         let gamebattles_data; // Will hold all information scrapped from both gamebattles (battle tag, team role) and overbuff (roles ranked in, sr for each role, top heros for each role)
         try
         {
@@ -81,11 +80,12 @@ export async function scout(original_message, string_to_scout)
         }
 
         const team_name = gamebattles_data.team_name; // Name of the gamebattles team (String)
+        const team_icon_url = gamebattles_data.team_icon_url; // Icon art for the team
         const gamebattles_battle_tags = gamebattles_data.battle_tags; // Battle tags and gamebattles team role of each player (Array)
         try
         {
             const scouted_team_data = await overbuffTeamScout(gamebattles_battle_tags); // Scout every player on gamebattles using their battle tags, sort them, and return an object with their battle tags and overbuff stats (also an object)
-            discordOutputTeamPlayerData(original_message, team_name, scouted_team_data); // Output the team's data to the Discord channel the scout request was sent from
+            await discordOutputTeamPlayerData(original_message, team_name, team_icon_url, scouted_team_data); // Output the team's data to the Discord channel the scout request was sent from
         }
         catch
         {
@@ -95,6 +95,26 @@ export async function scout(original_message, string_to_scout)
     }
     else // If this point is reached, the given string is not valid
         original_message.channel.send("Last argument of invalid form! Must be either a valid battle tag, list of battle tags, or Gamebattles team URL.");
+}
+
+// Will scout all the team's a single team is to compete against in a match bracket
+export async function scoutMatches(original_message, gb_team_url)
+{
+    const team_id = gb_team_url.match(/\d+/gm)[0]; // Regular Expression match to get the team id from the end of the URL
+    const enemy_team_ids = await getGamebattlesTournamentTeamIds(team_id)
+
+    for(let loop_count = 0; loop_count < enemy_team_ids.length; loop_count++)
+    {
+        try
+        {
+            const current_team_url = `https://gamebattles.majorleaguegaming.com/pc/overwatch/team/${enemy_team_ids[loop_count]}`
+            await scout(original_message, current_team_url);
+        }
+        catch
+        {
+            console.log(`Problem scouting team id ${enemy_team_ids[loop_count]} while matches scouting.`)
+        }
+    }
 }
 
 // Given a battle tag, search this player on overbuff
@@ -366,14 +386,13 @@ async function getGamebattlesData(team_url)
 {
     const team_id = team_url.match(/\d+/gm)[0]; // Regular Expression match to get the team id from the end of the URL
 
-    let team_name = await getGamebattlesTeamName(team_id); // Get the gamebattles team name
+    const gb_name_icon_array = await getGamebattlesTeamNameAndIcon(team_id); // Get the gamebattles team name
+    const team_name = gb_name_icon_array[0];
+    const team_icon_url = gb_name_icon_array[1];
     const game_battles_battle_tags = await getGamebattlesTeamBattleTags(team_id); // Get all gamebattles team player battle tags and gamebattles team roles
     
-    if(team_name == "") // If a team name was not found on the gamebattles URL...
-        team_name = "Team";
-    
     if(game_battles_battle_tags != null)
-        return {team_name: team_name, battle_tags: game_battles_battle_tags};
+        return {team_name: team_name, team_icon_url: team_icon_url, battle_tags: game_battles_battle_tags};
     else
         return null
 }
@@ -410,8 +429,44 @@ async function getGamebattlesTeamBattleTags(team_id)
     return battle_tags;
 }
 
+// Given a team id, this function will find the ids of all the team's the 'friendly' team will be competing against
+async function getGamebattlesTournamentTeamIds(friendly_team_id)
+{
+    const tournament_info_url = `https://gb-api.majorleaguegaming.com/api/web/v1/team-matches-screen/team/${friendly_team_id}?pageSize=5&pageNumber=1`
+    
+    const options = 
+    {
+        url: tournament_info_url,
+        json: true
+    }
+
+    const tournament_info_html = await rp(options); // Get the html of the team's player's information
+
+    if(tournament_info_html == undefined || tournament_info_html == null) // If the html was not found...
+    {
+        return null;
+    }
+
+    let team_ids = []; // Array of objects of every player on a gamebattles team including that player's battle tag and their gamebattles role
+    for(let match_data of tournament_info_html.body.records) // For every player that was found in the HTML...
+    {
+        const home_team_id = match_data.homeTeamCard.id;        // Id of the randomly assigned "home" team
+        const visitor_team_id = match_data.visitorTeamCard.id;  // Id of the randomly assigned "away" team
+
+        // Check which Id which does not match the 'friendly' team's id (ie the team the currently scouted for team will be going up against)
+        if(home_team_id != undefined && home_team_id != friendly_team_id)
+            team_ids.push(home_team_id);
+        else if(visitor_team_id != undefined && visitor_team_id != friendly_team_id)
+            team_ids.push(visitor_team_id);
+        else
+            console.log("Problem with parsing home / visitor IDs");
+    }
+
+    return team_ids;
+}
+
 // Given a gamebattles team id, this function will get the team's name
-async function getGamebattlesTeamName(team_id)
+async function getGamebattlesTeamNameAndIcon(team_id)
 {
     const team_info_url = `https://gb-api.majorleaguegaming.com/api/web/v1/team-screen/${team_id}` // URL of general team information from gamebattle's api
 
@@ -428,13 +483,28 @@ async function getGamebattlesTeamName(team_id)
         return "";
     }
 
+    // Super dumb nested way to try and return both values or try for one value if possible. If no items can be parsed then the function will return default values
     try
     {
-        return team_info_html.body.teamWithEligibilityAndPremiumStatus.team.name;
+        return [team_info_html.body.teamWithEligibilityAndPremiumStatus.team.name, team_info_html.body.teamWithEligibilityAndPremiumStatus.team.avatarUrl];
     }
     catch
     {
-        return "";
+        try
+        {
+            return [team_info_html.body.teamWithEligibilityAndPremiumStatus.team.name, "https://s3.amazonaws.com/mlg-gamebattles-production/assets/arenas/avatar/64/775.png?v=3"];
+        }
+        catch
+        {
+            try
+            {
+                return ["Team", team_info_html.body.teamWithEligibilityAndPremiumStatus.team.avatarUrl];
+            }
+            catch
+            {
+                return ["Team", "https://s3.amazonaws.com/mlg-gamebattles-production/assets/arenas/avatar/64/775.png?v=3"]; // Default team name and default Overwatch icon image URL
+            }
+        }
     }
 }
 
@@ -474,11 +544,12 @@ async function discordOutputOverwatchPlayerData(original_message, battle_tag, pl
 }
 
 // Output a gamebattles team or a team of given battle tags
-async function discordOutputTeamPlayerData(original_message, team_name, team_players_data)
+async function discordOutputTeamPlayerData(original_message, team_name, team_icon_url, team_players_data)
 {
     const team_scout_embed = new RichEmbed()
         .setColor('0x6f07ab')
         .setTitle(team_name + " Scouting Information")
+        .setThumbnail(team_icon_url)
         .setFooter("All stats obtained from https://www.overbuff.com/");
     if(team_players_data.length < 1) // If the team was not able to be parsed...
     {
@@ -529,7 +600,7 @@ async function discordOutputTeamPlayerData(original_message, team_name, team_pla
 
         // Calculate the team average if more than 2 people were counted and append to the embed
         if(players_counted > 2)
-            team_scout_embed.addField("TEAM AVERAGE FOR THE TOP " + players_counted + " PLAYERS", "**" + Math.round((parseInt(top_players_avg_sr) / parseInt(players_counted))) + "** for the team's top " + players_counted + " players.");
+            team_scout_embed.addField("TEAM AVERAGE SR", "**" + Math.round((parseInt(top_players_avg_sr) / parseInt(players_counted))) + "** for the team's top " + players_counted + " players.");
         else if(players_counted < 1)
             team_scout_embed.addField("No ranks to calculate average.");
     }
