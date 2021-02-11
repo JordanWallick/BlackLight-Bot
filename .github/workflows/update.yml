@@ -6,6 +6,7 @@ on:
  
 jobs:
     deploy:
+        runs-on: windows-2019
         steps:
           - name: Update BlackLight Bot and Redeploy
             uses: fifsky/ssh-action@master
