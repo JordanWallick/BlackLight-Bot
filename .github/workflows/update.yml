@@ -6,15 +6,14 @@ on:
  
 jobs:
     deploy:
-        runs-on: ubuntu-latest
         steps:
           - name: Update BlackLight Bot and Redeploy
-            uses: appleboy/ssh-action@v0.1.2
+            uses: fifsky/ssh-action@master
             with:
                 host: ${{secrets.SSH_HOST}}
-                username: ${{secrets.SSH_USERNAME}}
-                password: ${{secrets.SSH_PASSWORD}}
-                script: |
+                user: ${{secrets.SSH_USERNAME}}
+                pass: ${{secrets.SSH_PASSWORD}}
+                command: |
                     D:
                     cd D:/Scripts/Personal/BlackLight-Bot
                     git pull
