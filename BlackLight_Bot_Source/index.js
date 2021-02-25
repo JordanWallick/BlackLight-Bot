@@ -46,10 +46,10 @@ const TEST_BOT_CLIENT_ID_PATH   = "./bot_assets/login_token_test.txt";  // Path 
 const CHANNEL_WHITELIST_PATH    = './bot_assets/channel_whitelist.txt'; // Path of the text file that stores the channel white list
 
 // Bot variables stored in text files
-//const LOGIN_TOKEN   = String(fs.readFileSync(BOT_LOGIN_TOKEN_PATH, 'utf8'));     // Bot login token
-//const CLIENT_ID     = String(fs.readFileSync(BOT_CLIENT_ID_PATH, 'utf8'));       // Bot client id
-const LOGIN_TOKEN   = String(fs.readFileSync(TEST_BOT_LOGIN_TOKEN_PATH, 'utf8'));     // ENABLE FOR TEST BOT CLIENT
-const CLIENT_ID     = String(fs.readFileSync(TEST_BOT_CLIENT_ID_PATH, 'utf8'));       // ENABLE FOR TEST BOT CLIENT
+const LOGIN_TOKEN   = String(fs.readFileSync(BOT_LOGIN_TOKEN_PATH, 'utf8'));     // Bot login token
+const CLIENT_ID     = String(fs.readFileSync(BOT_CLIENT_ID_PATH, 'utf8'));       // Bot client id
+//const LOGIN_TOKEN   = String(fs.readFileSync(TEST_BOT_LOGIN_TOKEN_PATH, 'utf8'));     // ENABLE FOR TEST BOT CLIENT
+//const CLIENT_ID     = String(fs.readFileSync(TEST_BOT_CLIENT_ID_PATH, 'utf8'));       // ENABLE FOR TEST BOT CLIENT
 let channel_whitelist = ''; //Holds all channels the bot can post advanced commands in (helps prevent spam)
 
 // When the bot is ready to come online
