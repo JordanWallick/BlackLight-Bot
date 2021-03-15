@@ -1,3 +1,2 @@
-Version 1.6 Update
--Added a command to scout an entire team's upcoming matches.
--Added team icons to embed output.
+Version 1.8 Update
+-Bot will now reconnect when connection to discord is reestablished after a disconnect

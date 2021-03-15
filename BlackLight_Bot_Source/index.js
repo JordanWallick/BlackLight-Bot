@@ -18,11 +18,9 @@ const fs = require('fs');
 
 // Bot information and command delimiters
 const BOT_NAME                  = "BlackLight Bot";
-const BOT_VERSION               = "1.7";
-const BOT_UPDATE_DATE           = "2/24/2021";
-const VERSION_CHANGE_NOTES      = "- Added the version command that will display the bot version and change notes.\n"
-                                    + "- The scoutmatches command replaced with scoutallmatches, scoutmatches will now only scout matches that have not yet finished.\n"
-                                    + "- The scoutmatches and scoutallmatches commands will first output the team being scouted for.";
+const BOT_VERSION               = "1.8";
+const BOT_UPDATE_DATE           = "3/15/2021";
+const VERSION_CHANGE_NOTES      = "-Bot will now reconnect when connection to discord is reestablished after a disconnect";
 const COMMAND_DELIM             = "/bb";
 const COMMAND_HELP              = "help";
 const COMMAND_VERSION_INFO      = "version";
@@ -270,4 +268,30 @@ thisBot.on('message', async message =>
     }
 })
 
-thisBot.login(LOGIN_TOKEN); // Start the bot
+thisBot.on('error', err => {
+    console.error(err);
+    process.exit(1);
+});
+
+thisBot.on('reconnecting', message => {
+    console.log(`Client Reconnecting...`)
+});
+
+thisBot.on('resume', message => {
+    console.log(`Reconnected!`)
+});
+
+thisBot.on('disconnect', message => {
+    sendToLogs(`Client Disconnected`)
+    process.exit(1);
+});
+
+thisBot.on("unhandledRejection", err => {
+    console.error(`Uncaught Promise Error: \n ${err.stack}`);
+});
+
+thisBot.login(LOGIN_TOKEN)
+    .catch( err =>{
+        console.log(`Unable to connect client`);
+        process.exit(1);
+    }); // Start the bot
