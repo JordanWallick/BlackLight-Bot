@@ -18,9 +18,9 @@ const fs = require('fs');
 
 // Bot information and command delimiters
 const BOT_NAME                  = "BlackLight Bot";
-const BOT_VERSION               = "1.8";
-const BOT_UPDATE_DATE           = "3/15/2021";
-const VERSION_CHANGE_NOTES      = "-Bot will now reconnect when connection to discord is reestablished after a disconnect";
+const BOT_VERSION               = "1.9";
+const BOT_UPDATE_DATE           = "3/16/2021";
+const VERSION_CHANGE_NOTES      = "-Fixed bug where bot would crash on reconnect";
 const COMMAND_DELIM             = "/bb";
 const COMMAND_HELP              = "help";
 const COMMAND_VERSION_INFO      = "version";
@@ -268,9 +268,9 @@ thisBot.on('message', async message =>
     }
 })
 
-thisBot.on('error', err => {
-    console.error(err);
-    process.exit(1);
+// ERROR EVENTS
+thisBot.on('disconnect', message => {
+    sendToLogs(`Client Disconnected`)
 });
 
 thisBot.on('reconnecting', message => {
@@ -281,17 +281,16 @@ thisBot.on('resume', message => {
     console.log(`Reconnected!`)
 });
 
-thisBot.on('disconnect', message => {
-    sendToLogs(`Client Disconnected`)
-    process.exit(1);
-});
-
 thisBot.on("unhandledRejection", err => {
     console.error(`Uncaught Promise Error: \n ${err.stack}`);
 });
 
+thisBot.on('error', err => {
+    console.log(err);
+});
+
+// BOT LOGIN
 thisBot.login(LOGIN_TOKEN)
     .catch( err =>{
         console.log(`Unable to connect client`);
-        process.exit(1);
-    }); // Start the bot
+    });

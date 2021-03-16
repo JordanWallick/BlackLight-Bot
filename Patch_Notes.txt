@@ -1,2 +1,2 @@
-Version 1.8 Update
--Bot will now reconnect when connection to discord is reestablished after a disconnect
+Version 1.9 Update
+-Fixed bug where bot would crash on reconnect
